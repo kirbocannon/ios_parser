@@ -1,5 +1,6 @@
 import re
 import json
+from copy import deepcopy
 
 
 cfg = 'delta_cfg.txt'
@@ -31,6 +32,11 @@ class IOSParse(object):
             if_name = if_name[0].split()[1]
             return if_name
 
+    def is_end_of_sub_cfg(self, line):
+        """ Checks if sub-configuration is ending, i.e. there's an ! present """
+        end_sym = self.srch_str(pattern=r"^!", string=line)
+        return end_sym
+
 #    def is_protocol(self, line):
 #        """ Returns a line if it is a routing protocol  """
 #        return self.srch_str(pattern=r"^router", string=line)
@@ -48,22 +54,24 @@ class IOSParse(object):
             ip_address['ip'] = int_ip_address
             ip_address['mask'] = int_subnet_mask
             return ip_address
-        else:
-            return "No IP Address"
 
     def is_duplex(self, line):
         """ Returns a line if it is a duplex setting """
         duplex = self.srch_str(pattern=r"^ duplex.*", string=line)
         if duplex:
-            duplex = duplex[0].strip().split()[1]
-            return duplex
+            return duplex[0].strip().split()[1]
 
     def is_speed(self, line):
         """ Returns a line if it is a speed setting """
         speed = self.srch_str(pattern=r"^ speed.*", string=line)
         if speed:
-            speed = speed[0].strip().split()[1]
-            return speed
+            return speed[0].strip().split()[1]
+
+    def is_description(self, line):
+        """ Returns a line if it is a speed setting """
+        desc = self.srch_str(pattern=r"^ description.*", string=line)
+        if desc:
+            return desc[0].strip().split('description')[1].strip()
 
     def create_obj_list(self, obj_type):
         """ Creates an object list out of objects such as interfaces """
@@ -96,42 +104,49 @@ class IOSParse(object):
             list of  Dictionaries:
 
             - Interface Name
+            - Interface Description
             - Interface IP Address and Subnet Mask
             - Interface speed
             - Interface duplex
 
         """
         data = self.data
-        idx = 0
-        if_props_list = []
-        for line in data:
-            # check if IP address is present
+        start_idx_loc_lst = []
+        end_idx_loc_lst = []
+        # get indexes for all interfaces
+        for idx, line in enumerate(data):
             if self.is_int(line):
-                if_name = self.is_int(data[idx])
-                if_ip = self.is_int_ip(data[idx + 1])
-                if if_ip:
-                    if_props = {}
-                    if_ip = if_ip
-                    if_props['if_name'] = if_name
-                    if_props['ip4'] = if_ip
-                    if_props_list.append(if_props)
-                else:
-                    if_props = {}
-                    if_name = if_name
-                    if_props['if_name'] = if_name
-                    if_props_list.append(if_props)
-                # check duplex settings
-                if_duplex = self.is_duplex(data[idx + 2])
-                if if_duplex:
-                    if_props['duplex'] = if_duplex
-                # check speed settings
-                if_speed = self.is_speed(data[idx + 3])
-                if if_duplex:
-                    if_props['speed'] = if_speed
-            idx +=1
-        return if_props_list
+                start_idx_loc_lst.append(idx)
+        # get indexes for all '!' in configuration
+        for idx, i in enumerate(data):
+            if i.strip() == '!':
+                end_idx_loc_lst.append(idx)
+        # start index for index should never be more than '!' end, so remove these from list
+        fst_int_idx = start_idx_loc_lst[0]
+        end_idx_loc_lst = [x for x in end_idx_loc_lst if x > fst_int_idx]
+        #int_idx_list = end_idx_loc_lst[:len(end_idx_loc_lst)]
+        idx = 0
+        if_props_processed = []
+        # iterate through indexes were interfaces start, make list of interface properties
+        # until '!' index is reached, then repeat same process for all other interface start indexes
+        for int_idx in start_idx_loc_lst:
+            if_props = data[int_idx:end_idx_loc_lst[idx]]
+            all_current_int_props = {}
+            for prop in if_props:
+                if self.is_int(prop):
+                    all_current_int_props['if_name'] = self.is_int(prop)
+                elif self.is_description(prop):
+                    all_current_int_props['description'] = self.is_description(prop)
+                elif self.is_int_ip(prop):
+                    all_current_int_props['ipv4'] = self.is_int_ip(prop)
+                elif self.is_duplex(prop):
+                    all_current_int_props['duplex'] = self.is_duplex(prop)
+            if_props_processed.append(all_current_int_props)
+            idx += 1
+        return if_props_processed
 
     def get_interface_properties(self, interface_name):
+        """ Gets single interface when user provides valid interface name as argument """
         all_interfaces = self.get_all_interface_properties()
         try:
             interface = next(interface for interface in all_interfaces
@@ -139,7 +154,6 @@ class IOSParse(object):
             return interface
         except StopIteration:
             print('Interface {} Not Found.'.format(interface_name))
-
 
 
 
@@ -162,13 +176,17 @@ interfaces = ios.get_interfaces()
 
 test = convert_to_dict(interfaces)
 
-#interface_properties = ios.get_all_interface_properties()
+interface_properties = ios.get_all_interface_properties()
 #print(json.dumps(interface_properties, indent=4))
 
-print(json.dumps(ios.get_interface_properties('loopback30')))
+print(json.dumps(ios.get_interface_properties('loopback30'), indent=4))
 
 
-print(json.dumps(ios.get_all_interface_properties(), indent=4))
+
+
+
+
+#print(json.dumps(ios.get_all_interface_properties(), indent=4))
 
 
 
