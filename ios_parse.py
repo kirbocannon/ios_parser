@@ -26,8 +26,10 @@ class IOSParse(object):
         return match
 
     def is_int(self, line):
-        """ Returns an interface name if it is an interface """
-        if_name = self.srch_str(pattern=r"^interface .*", string=line)
+        """ Returns an interface name if it is an interface
+            Match the following: GigabitEthernet, Loopback,
+            Fastethernet, Tengigabitethernet, Vlan """
+        if_name = self.srch_str(pattern=r"^interface [TtLlVvFfGg].*", string=line)
         if if_name:
             if_name = if_name[0].split()[1]
             return if_name
