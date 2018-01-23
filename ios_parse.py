@@ -1,6 +1,5 @@
 import re
 import json
-from copy import deepcopy
 
 
 cfg = 'delta_cfg.txt'
@@ -38,6 +37,12 @@ class IOSParse(object):
         """ Checks if sub-configuration is ending, i.e. there's an ! present """
         end_sym = self.srch_str(pattern=r"^!", string=line)
         return end_sym
+
+    def is_hostname(self, line):
+        """ Gets the hostname provided """
+        hostname = self.srch_str(pattern=r"^hostname.*", string=line)
+        if hostname:
+            return hostname[0].split('hostname')[1].strip()
 
 #    def is_protocol(self, line):
 #        """ Returns a line if it is a routing protocol  """
@@ -97,7 +102,25 @@ class IOSParse(object):
         """ Returns a line if interface is shutdown  """
         state = self.srch_str(pattern=r"^ shutdown.*", string=line)
         if state:
-            return True
+            return 'shutdown'
+
+    def is_snmp_notification_option_add(self, line):
+        """ Returns a line if there is an snmp option add  """
+        snmp_option_add = self.srch_str(pattern=r"^ snmp trap mac-notification change added", string=line)
+        if snmp_option_add:
+            return snmp_option_add[0].strip()
+
+    def is_snmp_notification_option_remove(self, line):
+        """ Returns a line if there is an snmp option remove  """
+        snmp_option_remove = self.srch_str(pattern=r"^ snmp trap mac-notification change remove", string=line)
+        if snmp_option_remove:
+            return snmp_option_remove[0].strip()
+
+    def is_stree_mode(self, line):
+        """ Returns spanning-tree mode """
+        stree_mode = self.srch_str(pattern=r"^ spanning-tree.*", string=line)
+        if stree_mode:
+            return stree_mode[0].strip().split('mode')[1].strip()
 
     def is_pim_mode(self, line):
         """ Returns a line if interface is shutdown  """
@@ -110,14 +133,6 @@ class IOSParse(object):
         vrf_fwd = self.srch_str(pattern=r"^ vrf forwarding.*", string=line)
         if vrf_fwd:
             return vrf_fwd[0].strip().split('forwarding')[1].strip()
-
-    def create_obj_list(self, obj_type):
-        """ Creates an object list out of objects such as interfaces """
-        data = self.data
-        if obj_type == 'INTERFACES':
-            return [obj.strip().split()[1] for obj in data if self.is_int(obj)]
-        #elif obj_type == 'PROTOCOLS':
-        #    return [obj.strip().split()[1] for obj in data if self.is_protocol(obj)]
 
     def get_interfaces(self):
         """ Gets a list of all interfaces without interface properties """
@@ -133,13 +148,16 @@ class IOSParse(object):
         """ Gets a list of all ips configured on the device """
         pass
 
-    #def get_interface_ip(self, interface):
-    #    interface_ip = self.is_int_ip('INTERFACE')
-    #    return interface_ip
+    def get_hostname(self):
+        """ Returns a string object representing the device hostname """
+        for line in self.data:
+            hostname = self.is_hostname(line)
+            if hostname:
+                return hostname
 
     def get_all_interface_properties(self):
         """ Converts the following interface properties to a
-            list of  Dictionaries:
+            list of dictionaries if property is available :
 
             - Interface Name
             - Interface Description
@@ -149,6 +167,8 @@ class IOSParse(object):
             - Interface VRF Membership
             - Interface State
             - PIM Mode (Multicast)
+            - Switchport Mode
+            - Switchport Voice and Access Vlans
 
         """
         data = self.data
@@ -172,7 +192,7 @@ class IOSParse(object):
         # until '!' index is reached, then repeat same process for all other interface start indexes
         for int_idx in start_idx_loc_lst:
             if_props = data[int_idx:end_idx_loc_lst[idx]]
-            all_current_int_props = {'name': None, 'ipv4': None}
+            all_current_int_props = {'name': None}
             # check every child item under the interface for the various properties
             for prop in if_props:
                 if self.is_int(prop):
@@ -189,12 +209,18 @@ class IOSParse(object):
                     all_current_int_props['mode'] = self.is_port_mode(prop)
                 elif self.is_access_vlan(prop):
                     all_current_int_props['access_vlan'] = self.is_access_vlan(prop)
+                elif self.is_stree_mode(prop):
+                    all_current_int_props['spanning-tree_mode'] = self.is_stree_mode(prop)
+                elif self.is_snmp_notification_option_add(prop):
+                    all_current_int_props['snmp_opt_add'] = self.is_snmp_notification_option_add(prop)
+                elif self.is_snmp_notification_option_remove(prop):
+                    all_current_int_props['snmp_opt_remove'] = self.is_snmp_notification_option_remove(prop)
                 elif self.is_voice_vlan(prop):
                     all_current_int_props['voice_vlan'] = self.is_voice_vlan(prop)
                 elif self.is_vrf_forwarding(prop):
                     all_current_int_props['vrf'] = self.is_vrf_forwarding(prop)
                 elif self.is_state(prop):
-                    all_current_int_props['shutdown'] = self.is_state(prop)
+                    all_current_int_props['state'] = self.is_state(prop)
                 elif self.is_pim_mode(prop):
                     all_current_int_props['pim_mode'] = self.is_pim_mode(prop)
             if_props_processed.append(all_current_int_props)
@@ -213,6 +239,55 @@ class IOSParse(object):
             print('Interface {} Not Found.'.format(interface_name))
 
 
+class IOSGenerate(object):
+    def __init__(self):
+        #self.data = data
+        pass
+
+    def format_interface_for_write(self, interface):
+        """ Formats a single interface with it's properties when supplied in dictionary format """
+        int_cfg_lines = []
+        # return key only if exists; else return false
+        name = interface.get('name')
+        desc = interface.get('description')
+        access_vlan = interface.get('access_vlan')
+        voice_vlan = interface.get('voice_vlan')
+        mode = interface.get('mode')
+        state = interface.get('state')
+        ip = interface.get('ipv4')
+        vrf = interface.get('vrf')
+        snmp_opt_add = interface.get('snmp_opt_add')
+        snmp_opt_remove = interface.get('snmp_opt_remove')
+        stree_mode = interface.get('spanning-tree_mode')
+        # check if keys exist in interface dictionary; if true, append to
+        # list of commands to write
+        if name:
+            int_cfg_lines.append('interface {}\n'.format(name))
+        if desc:
+            int_cfg_lines.append(' description {}\n'.format(desc))
+        if ip:
+            int_cfg_lines.append(' ip address {} {}\n'.format(ip['ip'], ip['mask']))
+        if mode:
+            int_cfg_lines.append(' switchport mode {}\n'.format(mode))
+        if access_vlan:
+            int_cfg_lines.append(' switchport access vlan {}\n'.format(access_vlan))
+        if voice_vlan:
+            int_cfg_lines.append(' switchport voice vlan {}\n'.format(voice_vlan))
+        if state:
+            int_cfg_lines.append(' {}\n'.format(state))
+        if vrf:
+            int_cfg_lines.append(' vrf forwarding {}\n'.format(vrf))
+        if snmp_opt_add:
+            int_cfg_lines.append(' {}\n'.format(snmp_opt_add))
+        if snmp_opt_remove:
+            int_cfg_lines.append(' {}\n'.format(snmp_opt_remove))
+        if stree_mode:
+            int_cfg_lines.append(' spanning-tree {}\n'.format(stree_mode))
+        int_cfg_lines.append('!')
+        int_cfg_lines.append('\n')
+        return int_cfg_lines
+
+
 
 
 
@@ -222,19 +297,38 @@ if __name__ == '__main__':
     device = NetworkDevice(cfg)
     data = device.load_data()
     ios = IOSParse(data)
-    interfaces = ios.get_interfaces()
-
-
+    # print(json.dumps(interface_properties, indent=4))
     interface_properties = ios.get_all_interface_properties()
+    hostname = ios.get_hostname()
+    config_write = IOSGenerate()
+
+
+    # changing access vlan from 966 to 777
+    for i in interface_properties:
+        new_vlan = i.get('access_vlan')
+        if new_vlan == '966':
+            i['access_vlan'] = 777
+
     print(json.dumps(interface_properties, indent=4))
 
-    #print(json.dumps(ios.get_interface_properties('loopback30'), indent=4))
+    # write changed interface configuration to configuration file
+    with open('test.txt', 'w+') as f:
+        for interface in interface_properties:
+            int_cfg = config_write.format_interface_for_write(interface)
+            for line in int_cfg:
+                f.write(line)
+
+    # write hostname to configuration file
+    with open('test.txt', 'a+') as f:
+        f.write('hostname {}\n'.format(hostname))
 
 
 
 
 
 
+
+#print(json.dumps(ios.get_interface_properties('loopback30'), indent=4))
 #print(json.dumps(ios.get_all_interface_properties(), indent=4))
 
 
