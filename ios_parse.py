@@ -152,7 +152,7 @@ class IOSParse(object):
         # until '!' index is reached, then repeat same process for all other interface start indexes
         for int_idx in start_idx_loc_lst:
             if_props = data[int_idx:end_idx_loc_lst[idx]]
-            all_current_int_props = {'name': '', 'ipv4': None}
+            all_current_int_props = {'name': None, 'ipv4': None}
             # check every child item under the interface for the various properties
             for prop in if_props:
                 if self.is_int(prop):
