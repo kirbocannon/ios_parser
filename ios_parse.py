@@ -63,6 +63,24 @@ class IOSParse(object):
         if duplex:
             return duplex[0].strip().split()[1]
 
+    def is_access_vlan(self, line):
+        """ Returns access vlan number if available  """
+        access_vlan = self.srch_str(pattern=r"^ switchport access vlan .*", string=line)
+        if access_vlan:
+            return access_vlan[0].strip().split('vlan')[1].strip()
+
+    def is_voice_vlan(self, line):
+        """ Returns voice vlan number if available"""
+        voice_vlan = self.srch_str(pattern=r"^ switchport voice vlan .*", string=line)
+        if voice_vlan:
+            return voice_vlan[0].strip().split('vlan')[1].strip()
+
+    def is_port_mode(self, line):
+        """ Returns port mode: access or trunk """
+        port_mode = self.srch_str(pattern=r"^ switchport mode.*", string=line)
+        if port_mode:
+            return port_mode[0].strip().split('mode')[1].strip()
+
     def is_speed(self, line):
         """ Returns a line if it is a speed setting """
         speed = self.srch_str(pattern=r"^.speed.*", string=line)
@@ -167,6 +185,12 @@ class IOSParse(object):
                     all_current_int_props['duplex'] = self.is_duplex(prop)
                 elif self.is_speed(prop):
                     all_current_int_props['speed'] = self.is_speed(prop)
+                elif self.is_port_mode(prop):
+                    all_current_int_props['mode'] = self.is_port_mode(prop)
+                elif self.is_access_vlan(prop):
+                    all_current_int_props['access_vlan'] = self.is_access_vlan(prop)
+                elif self.is_voice_vlan(prop):
+                    all_current_int_props['voice_vlan'] = self.is_voice_vlan(prop)
                 elif self.is_vrf_forwarding(prop):
                     all_current_int_props['vrf'] = self.is_vrf_forwarding(prop)
                 elif self.is_state(prop):
