@@ -264,7 +264,7 @@ class IOSGenerate(object):
         if state:
             int_cfg_lines.append(' {}\n'.format(state))
         # properties associated with layer two interfaces
-        if mode and mode == 'access':
+        if mode == 'access':
             access_vlan = interface.get('access_vlan')
             voice_vlan = interface.get('voice_vlan')
             snmp_opt_add = interface.get('snmp_opt_add')
@@ -286,8 +286,11 @@ class IOSGenerate(object):
             vrf = interface.get('vrf')
             ip_helpers = interface.get('ip_helpers')
             int_cfg_lines.append(' ip address {} {}\n'.format(ip['ip'], ip['mask']))
+            pim_mode = interface.get('pim_mode')
             if vrf:
                 int_cfg_lines.append(' vrf forwarding {}\n'.format(vrf))
+            if pim_mode:
+                int_cfg_lines.append(' ip pim {}\n'.format(pim_mode))
             if ip_helpers:
                 for helper in ip_helpers:
                     int_cfg_lines.append(' ip helper-address {}\n'.format(helper))
