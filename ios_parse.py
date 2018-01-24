@@ -245,44 +245,52 @@ class IOSGenerate(object):
         pass
 
     def format_interface_for_write(self, interface):
-        """ Formats a single interface with it's properties when supplied in dictionary format """
+        """ Formats a single interface with supported properties when supplied in dictionary format """
         int_cfg_lines = []
         # return key only if exists; else return false
         name = interface.get('name')
         desc = interface.get('description')
-        access_vlan = interface.get('access_vlan')
-        voice_vlan = interface.get('voice_vlan')
         mode = interface.get('mode')
         state = interface.get('state')
         ip = interface.get('ipv4')
-        vrf = interface.get('vrf')
-        snmp_opt_add = interface.get('snmp_opt_add')
-        snmp_opt_remove = interface.get('snmp_opt_remove')
-        stree_mode = interface.get('spanning-tree_mode')
         # check if keys exist in interface dictionary; if true, append to
         # list of commands to write
+        #
+        # properties associated with all interfaces
         if name:
             int_cfg_lines.append('interface {}\n'.format(name))
         if desc:
             int_cfg_lines.append(' description {}\n'.format(desc))
-        if ip:
-            int_cfg_lines.append(' ip address {} {}\n'.format(ip['ip'], ip['mask']))
-        if mode:
-            int_cfg_lines.append(' switchport mode {}\n'.format(mode))
-        if access_vlan:
-            int_cfg_lines.append(' switchport access vlan {}\n'.format(access_vlan))
-        if voice_vlan:
-            int_cfg_lines.append(' switchport voice vlan {}\n'.format(voice_vlan))
         if state:
             int_cfg_lines.append(' {}\n'.format(state))
-        if vrf:
-            int_cfg_lines.append(' vrf forwarding {}\n'.format(vrf))
-        if snmp_opt_add:
-            int_cfg_lines.append(' {}\n'.format(snmp_opt_add))
-        if snmp_opt_remove:
-            int_cfg_lines.append(' {}\n'.format(snmp_opt_remove))
-        if stree_mode:
-            int_cfg_lines.append(' spanning-tree {}\n'.format(stree_mode))
+        # properties associated with layer two interfaces
+        if mode and mode == 'access':
+            access_vlan = interface.get('access_vlan')
+            voice_vlan = interface.get('voice_vlan')
+            snmp_opt_add = interface.get('snmp_opt_add')
+            snmp_opt_remove = interface.get('snmp_opt_remove')
+            stree_mode = interface.get('spanning-tree_mode')
+            int_cfg_lines.append(' switchport access vlan {}\n'.format(access_vlan))
+            if mode:
+                int_cfg_lines.append(' switchport mode {}\n'.format(mode))
+            if voice_vlan:
+                int_cfg_lines.append(' switchport voice vlan {}\n'.format(voice_vlan))
+            if snmp_opt_add:
+                int_cfg_lines.append(' {}\n'.format(snmp_opt_add))
+            if snmp_opt_remove:
+                int_cfg_lines.append(' {}\n'.format(snmp_opt_remove))
+            if stree_mode:
+                int_cfg_lines.append(' spanning-tree {}\n'.format(stree_mode))
+        # properties associated with layer 3 interfaces
+        if ip:
+            vrf = interface.get('vrf')
+            ip_helpers = interface.get('ip_helpers')
+            int_cfg_lines.append(' ip address {} {}\n'.format(ip['ip'], ip['mask']))
+            if vrf:
+                int_cfg_lines.append(' vrf forwarding {}\n'.format(vrf))
+            if ip_helpers:
+                for helper in ip_helpers:
+                    int_cfg_lines.append(' ip helper-address {}\n'.format(helper))
         int_cfg_lines.append('!')
         int_cfg_lines.append('\n')
         return int_cfg_lines
@@ -308,6 +316,7 @@ if __name__ == '__main__':
         new_vlan = i.get('access_vlan')
         if new_vlan == '966':
             i['access_vlan'] = 777
+            i['ip_helpers'] = ['10.1.1.1', '10.2.2.2']
 
     print(json.dumps(interface_properties, indent=4))
 
