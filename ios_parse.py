@@ -298,6 +298,17 @@ class IOSGenerate(object):
         int_cfg_lines.append('\n')
         return int_cfg_lines
 
+    @staticmethod
+    def create_standard_loopback(name, desc, vrf, ipv4, pim_mode, interfaces):
+        standard_loopback_interface = {
+            'name': name,
+            'description': desc,
+            'vrf': vrf,
+            'ipv4': ipv4,
+            'pim_mode': pim_mode
+        }
+        interfaces.append(standard_loopback_interface)
+
 
 
 
@@ -322,6 +333,41 @@ if __name__ == '__main__':
             i['ip_helpers'] = ['10.1.1.1', '10.2.2.2']
 
     print(json.dumps(interface_properties, indent=4))
+
+
+    # remove standard interface loopbacks and add standard config
+    # [:] is for changing the list in place. Otherwise, the indexes will never update and you
+    # will get some strange results
+    # This list comprehension can also be done with for loop
+    standard_loopback_interface_names = ['Loopback0', 'Loopback2', 'Loopback8', 'Loopback10', 'Loopback12']
+    interface_properties[:] = [interface for interface in interface_properties
+                               if interface.get('name') not in standard_loopback_interface_names]
+
+
+    #for interface in interface_properties:
+    #    print(interface)
+
+    print('---------------------------------')
+
+
+
+    # add new loopback interfaces
+    config_write.create_standard_loopback(
+        name='Loopback100',
+        desc='== GLOBAL VRF MGMT INTERFACE ==',
+        vrf='mgmt-vrf',
+        ipv4={'ip': '1.1.1.1', 'mask': '255.255.255.255'},
+        pim_mode='sparse-mode',
+        interfaces=interface_properties
+    )
+
+
+
+    for interface in interface_properties:
+       print(interface)
+
+
+
 
     # write changed interface configuration to configuration file
     with open('test.txt', 'w+') as f:
