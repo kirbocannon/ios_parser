@@ -1,10 +1,6 @@
 import re
 import json
-
-
-cfg = 'delta_cfg.txt'
-
-
+import sys
 
 class NetworkDevice(object):
     def __init__(self, config):
@@ -244,7 +240,8 @@ class IOSGenerate(object):
         #self.data = data
         pass
 
-    def format_interface_for_write(self, interface):
+    @staticmethod
+    def format_interface_for_write(interface):
         """ Formats a single interface with supported properties when supplied in dictionary format """
         int_cfg_lines = []
         # return key only if exists; else return false
@@ -298,7 +295,8 @@ class IOSGenerate(object):
         int_cfg_lines.append('\n')
         return int_cfg_lines
 
-    def format_vnet_for_write(self, vnet):
+    @staticmethod
+    def format_vnet_for_write(vnet):
         """ Formats a single interface with supported properties when supplied in dictionary format """
         vnet_cfg_lines = []
         name = vnet.get('name')
@@ -310,8 +308,7 @@ class IOSGenerate(object):
             vnet_cfg_lines.append(' ip address {} {}\n'.format(ip['ip'], ip['mask']))
         if pim_mode:
             vnet_cfg_lines.append(' ip pim {}\n'.format(pim_mode))
-        vnet_cfg_lines.append('!')
-        vnet_cfg_lines.append('\n')
+        vnet_cfg_lines.append('!\n')
         return vnet_cfg_lines
 
     @staticmethod
@@ -334,100 +331,18 @@ class IOSGenerate(object):
         }
         vnets.append(standard_vnet_interface)
 
-
-
-
-
-if __name__ == '__main__':
-
-
-    device = NetworkDevice(cfg)
-    data = device.load_data()
-    ios = IOSParse(data)
-    # print(json.dumps(interface_properties, indent=4))
-    interface_properties = ios.get_all_interface_properties()
-    vnet_properties = []
-    hostname = ios.get_hostname()
-    config_write = IOSGenerate()
-
-
-    # changing access vlan from 966 to 777
-    for i in interface_properties:
-        new_vlan = i.get('access_vlan')
-        if new_vlan == '966':
-            i['access_vlan'] = 777
-            i['ip_helpers'] = ['10.1.1.1', '10.2.2.2']
-
-    print(json.dumps(interface_properties, indent=4))
-
-
-    # remove standard interface loopbacks and add standard config
-    # [:] is for changing the list in place. Otherwise, the indexes will never update and you
-    # will get some strange results
-    # This list comprehension can also be done with for loop
-    standard_loopback_interface_names = ['Loopback0', 'Loopback2', 'Loopback8', 'Loopback10', 'Loopback12']
-    interface_properties[:] = [interface for interface in interface_properties
-                               if interface.get('name') not in standard_loopback_interface_names]
-
-
-    #for interface in interface_properties:
-    #    print(interface)
-
-    print('---------------------------------')
-
-
-
-    # add new loopback interfaces
-    config_write.create_standard_loopback(
-        name='Loopback100',
-        desc='== GLOBAL VRF MGMT INTERFACE ==',
-        vrf='mgmt-vrf',
-        ipv4={'ip': '1.1.1.1', 'mask': '255.255.255.255'},
-        pim_mode='sparse-mode',
-        interfaces=interface_properties
-    )
-
-    config_write.create_standard_vnet(
-        name='USER-VRF',
-        ipv4={'ip': '1.1.1.1', 'mask': '255.255.255.255'},
-        pim_mode='sparse-mode',
-        vnets=vnet_properties
-    )
-
-
-
-    for interface in interface_properties:
-       print(interface)
-
-
-
-    # write hostname to configuration file
-    with open('test.txt', 'w+') as f:
-        f.write('hostname {}\n!\n'.format(hostname))
-
-    # write changed interface configuration to configuration file
-    with open('test.txt', 'a+') as f:
-        for interface in interface_properties:
-            int_cfg = config_write.format_interface_for_write(interface)
-            for line in int_cfg:
-                f.write(line)
-
-    # write changed interface configuration to configuration file
-    with open('test.txt', 'a+') as f:
-        for vnet in vnet_properties:
-            vnet_cfg = config_write.format_vnet_for_write(vnet)
-            for line in vnet_cfg:
-                f.write(line)
+    def write_cfg(self, cfg_file, lines, type):
+        format_line = getattr(IOSGenerate, 'format_{}_for_write'.format(type))
+        with open(cfg_file, 'a+') as f:
+            for line in lines:
+                int_cfg = format_line(line)
+                for line in int_cfg:
+                    f.write(line)
 
 
 
 
 
-
-
-
-#print(json.dumps(ios.get_interface_properties('loopback30'), indent=4))
-#print(json.dumps(ios.get_all_interface_properties(), indent=4))
 
 
 
