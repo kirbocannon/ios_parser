@@ -298,6 +298,22 @@ class IOSGenerate(object):
         int_cfg_lines.append('\n')
         return int_cfg_lines
 
+    def format_vnet_for_write(self, vnet):
+        """ Formats a single interface with supported properties when supplied in dictionary format """
+        vnet_cfg_lines = []
+        name = vnet.get('name')
+        ip = vnet.get('ipv4')
+        pim_mode = vnet.get('pim_mode')
+        if name:
+            vnet_cfg_lines.append('vnet name {}\n'.format(name))
+        if ip:
+            vnet_cfg_lines.append(' ip address {} {}\n'.format(ip['ip'], ip['mask']))
+        if pim_mode:
+            vnet_cfg_lines.append(' ip pim {}\n'.format(pim_mode))
+        vnet_cfg_lines.append('!')
+        vnet_cfg_lines.append('\n')
+        return vnet_cfg_lines
+
     @staticmethod
     def create_standard_loopback(name, desc, vrf, ipv4, pim_mode, interfaces):
         standard_loopback_interface = {
@@ -308,6 +324,15 @@ class IOSGenerate(object):
             'pim_mode': pim_mode
         }
         interfaces.append(standard_loopback_interface)
+
+    @staticmethod
+    def create_standard_vnet(name, ipv4, pim_mode, vnets):
+        standard_vnet_interface = {
+            'name': name,
+            'ipv4': ipv4,
+            'pim_mode': pim_mode
+        }
+        vnets.append(standard_vnet_interface)
 
 
 
@@ -321,6 +346,7 @@ if __name__ == '__main__':
     ios = IOSParse(data)
     # print(json.dumps(interface_properties, indent=4))
     interface_properties = ios.get_all_interface_properties()
+    vnet_properties = []
     hostname = ios.get_hostname()
     config_write = IOSGenerate()
 
@@ -361,6 +387,13 @@ if __name__ == '__main__':
         interfaces=interface_properties
     )
 
+    config_write.create_standard_vnet(
+        name='USER-VRF',
+        ipv4={'ip': '1.1.1.1', 'mask': '255.255.255.255'},
+        pim_mode='sparse-mode',
+        vnets=vnet_properties
+    )
+
 
 
     for interface in interface_properties:
@@ -368,17 +401,24 @@ if __name__ == '__main__':
 
 
 
+    # write hostname to configuration file
+    with open('test.txt', 'w+') as f:
+        f.write('hostname {}\n!\n'.format(hostname))
 
     # write changed interface configuration to configuration file
-    with open('test.txt', 'w+') as f:
+    with open('test.txt', 'a+') as f:
         for interface in interface_properties:
             int_cfg = config_write.format_interface_for_write(interface)
             for line in int_cfg:
                 f.write(line)
 
-    # write hostname to configuration file
+    # write changed interface configuration to configuration file
     with open('test.txt', 'a+') as f:
-        f.write('hostname {}\n'.format(hostname))
+        for vnet in vnet_properties:
+            vnet_cfg = config_write.format_vnet_for_write(vnet)
+            for line in vnet_cfg:
+                f.write(line)
+
 
 
 
