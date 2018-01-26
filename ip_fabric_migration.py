@@ -1,5 +1,5 @@
 from ios_parse import *
-
+from shutil import copyfile
 
 
 
@@ -16,9 +16,8 @@ if __name__ == '__main__':
     ios = IOSParse(data)
     # print(json.dumps(interface_properties, indent=4))
     interface_properties = ios.get_all_interface_properties()
-    vnet_properties = []
     hostname = ios.get_hostname()
-    config_write = IOSGenerate()
+    cfg_gen = IOSGenerate()
 
 
     # changing access vlan from 966 to 777
@@ -46,10 +45,11 @@ if __name__ == '__main__':
     print('---------------------------------')
 
     new_cfg = 'test.txt'
+    copyfile('base_cfg.txt', new_cfg)
 
     # add new loopback interfaces
-    config_write.create_standard_loopback(
-        name='Loopback100',
+    cfg_gen.create_standard_loopback(
+        name='Loopback2',
         desc='== GLOBAL VRF MGMT INTERFACE ==',
         vrf='mgmt-vrf',
         ipv4={'ip': '1.1.1.1', 'mask': '255.255.255.255'},
@@ -57,11 +57,22 @@ if __name__ == '__main__':
         interfaces=interface_properties
     )
 
-    config_write.create_standard_vnet(
+    vnet1 = cfg_gen.create_standard_vnet(
         name='USER-VRF',
         ipv4={'ip': '1.1.1.1', 'mask': '255.255.255.255'},
-        pim_mode='sparse-mode',
-        vnets=vnet_properties
+        pim_mode='sparse-mode'
+    )
+    vnet2 = cfg_gen.create_standard_vnet(
+        name='MY',
+        ipv4={'ip': '2.2.2.2', 'mask': '255.255.255.0'},
+        pim_mode='sparse-mode'
+    )
+
+    bgp = cfg_gen.apply_standard_bgp_config(
+        vrf_name= 'USER',
+        router_id= '2.2.2.2',
+        neighbor_ips= ['1.1.1.1', '3.3.3.3', '4.4.4.4', '5.5.5.5'],
+        cfg_file=new_cfg
     )
     # # write hostname to configuration file
     # with open(new_cfg, 'w+') as f:
@@ -70,21 +81,26 @@ if __name__ == '__main__':
     # # write changed interface configuration to configuration file
     # with open(new_cfg, 'a+') as f:
     #     for interface in interface_properties:
-    #         int_cfg = config_write.format_interface_for_write(interface)
+    #         int_cfg = cfg_gen.format_interface_for_write(interface)
     #         for line in int_cfg:
     #             f.write(line)
     #
     # # write changed interface configuration to configuration file
     # with open(new_cfg, 'a+') as f:
     #     for vnet in vnet_properties:
-    #         vnet_cfg = config_write.format_vnet_for_write(vnet)
+    #         vnet_cfg = cfg_gen.format_vnet_for_write(vnet)
     #         for line in vnet_cfg:
     #             f.write(line)
 
 
+    # cfg_gen.write_cfg(new_cfg, interface_properties, 'interface')
+    # cfg_gen.write_cfg(new_cfg, vnet1, 'vnet')
+    # cfg_gen.write_cfg(new_cfg, vnet2, 'vnet')
 
-    config_write.write_cfg(new_cfg, interface_properties, 'interface')
-    config_write.write_cfg(new_cfg, vnet_properties, 'vnet')
+
+
+
+
 
 
 
