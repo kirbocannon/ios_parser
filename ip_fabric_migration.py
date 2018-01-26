@@ -64,6 +64,9 @@ if __name__ == '__main__':
         if new_vlan == '966':
             i['access_vlan'] = 777
             i['ip_helpers'] = ['10.1.1.1', '10.2.2.2']
+        # need to create more logic here, only vlans with ip directed-broadcast 101
+        # commands are DATA VLANs and CPE: vlan51, vlan52, vlan53
+        # probably some other stuff different too
 
     #print(json.dumps(interface_properties, indent=4))
 
