@@ -1,7 +1,44 @@
 from ios_parse import *
 from shutil import copyfile
+import ipaddress
 
 
+def calc_bgp_ips(vrf_name, bgp_ip):
+    """ Calculates BGP IPs needed for BGP leaf/spin setup
+        +10 for third octet for the BGP subnet
+        For neighbor IPs, it's +34, +36, +38, +40 """
+    neighbor_ips = []
+    octets = bgp_ip.split('.')
+    if vrf_name == 'VEND':
+        third_octet = str(int(octets.pop(2)) + 60)
+    else:
+        third_octet = str(int(octets.pop(2)) +10)
+    octets.insert(2, third_octet)
+    bgp_ip = '.'.join(octets)
+    # calculate neighbor IPs
+    neighbor_one_ip = ipaddress.ip_address(bgp_ip) + 34
+    neighbor_two_ip = ipaddress.ip_address(bgp_ip) + 36
+    neighbor_three_ip = ipaddress.ip_address(bgp_ip) + 38
+    neighbor_four_ip = ipaddress.ip_address(bgp_ip) + 40
+    # convert IPs to strings and added to neighbor list
+    neighbor_ips.append(neighbor_one_ip.exploded)
+    neighbor_ips.append(neighbor_two_ip.exploded)
+    neighbor_ips.append(neighbor_three_ip.exploded)
+    neighbor_ips.append(neighbor_four_ip.exploded)
+    return neighbor_ips
+
+def apply_standard_bgp_config(vrf_name, router_id, cfg_file):
+    vars = dict()
+    cnt = 1
+    neighbor_ips = calc_bgp_ips(vrf_name, router_id)
+    vars['{}VrfRouterId'.format(vrf_name.lower())] = router_id
+    for neighbor_ip in neighbor_ips:
+       vars['{}VrfNeighborIp{}'.format(vrf_name.lower(), cnt)] = neighbor_ip
+       cnt +=1
+    with open(cfg_file, 'r') as f:
+        data = f.read()
+    with open(cfg_file, encoding='utf-8', mode='w+') as f:
+        f.write(Template(data).safe_substitute(vars))
 
 
 
@@ -68,12 +105,38 @@ if __name__ == '__main__':
         pim_mode='sparse-mode'
     )
 
-    bgp = cfg_gen.apply_standard_bgp_config(
-        vrf_name= 'USER',
-        router_id= '2.2.2.2',
-        neighbor_ips= ['1.1.1.1', '3.3.3.3', '4.4.4.4', '5.5.5.5'],
+    bgp_global = apply_standard_bgp_config(
+        vrf_name= 'GLOBAL',
+        router_id= '10.100.100.110',
         cfg_file=new_cfg
     )
+    bgp_user = apply_standard_bgp_config(
+        vrf_name= 'USER',
+        router_id= '10.100.101.110',
+        cfg_file=new_cfg
+    )
+    bgp_fac = apply_standard_bgp_config(
+        vrf_name= 'FAC',
+        router_id= '10.100.104.110',
+        cfg_file=new_cfg
+    )
+    bgp_sec = apply_standard_bgp_config(
+        vrf_name= 'SEC',
+        router_id= '10.100.105.110',
+        cfg_file=new_cfg
+    )
+    bgp_vend = apply_standard_bgp_config(
+        vrf_name= 'VEND',
+        router_id= '10.55.55.110',
+        cfg_file=new_cfg
+    )
+
+
+
+
+
+
+
     # # write hostname to configuration file
     # with open(new_cfg, 'w+') as f:
     #     f.write('hostname {}\n!\n'.format(hostname))
@@ -93,9 +156,9 @@ if __name__ == '__main__':
     #             f.write(line)
 
 
-    # cfg_gen.write_cfg(new_cfg, interface_properties, 'interface')
-    # cfg_gen.write_cfg(new_cfg, vnet1, 'vnet')
-    # cfg_gen.write_cfg(new_cfg, vnet2, 'vnet')
+    cfg_gen.write_cfg(new_cfg, interface_properties, 'interface')
+    cfg_gen.write_cfg(new_cfg, vnet1, 'vnet')
+    cfg_gen.write_cfg(new_cfg, vnet2, 'vnet')
 
 
 

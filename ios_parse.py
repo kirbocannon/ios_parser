@@ -2,6 +2,7 @@ import re
 import json
 import sys
 from string import Template
+import ipaddress
 
 class NetworkDevice(object):
     def __init__(self, config):
@@ -333,22 +334,6 @@ class IOSGenerate(object):
         }
         vnet_properties.append(standard_vnet_interface)
         return vnet_properties
-
-    @staticmethod
-    def apply_standard_bgp_config(vrf_name, router_id, neighbor_ips, cfg_file):
-        vars = dict()
-        cnt = 1
-        vars['blah'] = 'ha'
-        vars['{}VrfRouterId'.format(vrf_name.lower())] = router_id
-        for neighbor_ip in neighbor_ips:
-           vars['{}VrfNeighborIp{}'.format(vrf_name.lower(), cnt)] = neighbor_ip
-           cnt +=1
-        with open(cfg_file, 'r') as f:
-            data = f.read()
-
-        with open(cfg_file, encoding='utf-8', mode='w+') as f:
-            f.write(Template(data).safe_substitute(vars))
-
 
     def write_cfg(self, cfg_file, lines, type):
         format_line = getattr(IOSGenerate, 'format_{}_for_write'.format(type))
