@@ -9,10 +9,11 @@ def calc_bgp_ips(vrf_name, bgp_ip):
         For neighbor IPs, it's +34, +36, +38, +40 """
     neighbor_ips = []
     octets = bgp_ip.split('.')
+    # vendor calculation is different from all other vrfs
     if vrf_name == 'VEND':
         third_octet = str(int(octets.pop(2)) + 60)
     else:
-        third_octet = str(int(octets.pop(2)) +10)
+        third_octet = str(int(octets.pop(2)) + 10)
     octets.insert(2, third_octet)
     bgp_ip = '.'.join(octets)
     # calculate neighbor IPs
@@ -27,7 +28,7 @@ def calc_bgp_ips(vrf_name, bgp_ip):
     neighbor_ips.append(neighbor_four_ip.exploded)
     return neighbor_ips
 
-def apply_standard_bgp_config(vrf_name, router_id, cfg_file):
+def write_standard_bgp_config(vrf_name, router_id, cfg_file):
     vars = dict()
     cnt = 1
     neighbor_ips = calc_bgp_ips(vrf_name, router_id)
@@ -64,7 +65,7 @@ if __name__ == '__main__':
             i['access_vlan'] = 777
             i['ip_helpers'] = ['10.1.1.1', '10.2.2.2']
 
-    print(json.dumps(interface_properties, indent=4))
+    #print(json.dumps(interface_properties, indent=4))
 
 
     # remove standard interface loopbacks and add standard config
@@ -74,13 +75,9 @@ if __name__ == '__main__':
     standard_loopback_interface_names = ['Loopback0', 'Loopback2', 'Loopback8', 'Loopback10', 'Loopback12']
     interface_properties[:] = [interface for interface in interface_properties
                                if interface.get('name') not in standard_loopback_interface_names]
+    #print('---------------------------------')
 
-
-    #for interface in interface_properties:
-    #    print(interface)
-
-    print('---------------------------------')
-
+    # specify new config file name, copy from base config
     new_cfg = 'test.txt'
     copyfile('base_cfg.txt', new_cfg)
 
@@ -105,55 +102,33 @@ if __name__ == '__main__':
         pim_mode='sparse-mode'
     )
 
-    bgp_global = apply_standard_bgp_config(
-        vrf_name= 'GLOBAL',
-        router_id= '10.100.100.110',
-        cfg_file=new_cfg
+    bgp_global = write_standard_bgp_config(
+        vrf_name = 'GLOBAL',
+        router_id = '10.100.100.110',
+        cfg_file =new_cfg
     )
-    bgp_user = apply_standard_bgp_config(
-        vrf_name= 'USER',
-        router_id= '10.100.101.110',
-        cfg_file=new_cfg
+    bgp_user = write_standard_bgp_config(
+        vrf_name = 'USER',
+        router_id = '10.100.101.110',
+        cfg_file =new_cfg
     )
-    bgp_fac = apply_standard_bgp_config(
-        vrf_name= 'FAC',
-        router_id= '10.100.104.110',
-        cfg_file=new_cfg
+    bgp_fac = write_standard_bgp_config(
+        vrf_name = 'FAC',
+        router_id = '10.100.104.110',
+        cfg_file = new_cfg
     )
-    bgp_sec = apply_standard_bgp_config(
-        vrf_name= 'SEC',
-        router_id= '10.100.105.110',
-        cfg_file=new_cfg
+    bgp_sec = write_standard_bgp_config(
+        vrf_name = 'SEC',
+        router_id = '10.100.105.110',
+        cfg_file = new_cfg
     )
-    bgp_vend = apply_standard_bgp_config(
-        vrf_name= 'VEND',
-        router_id= '10.55.55.110',
-        cfg_file=new_cfg
+    bgp_vend = write_standard_bgp_config(
+        vrf_name = 'VEND',
+        router_id = '10.55.55.110',
+        cfg_file = new_cfg
     )
 
 
-
-
-
-
-
-    # # write hostname to configuration file
-    # with open(new_cfg, 'w+') as f:
-    #     f.write('hostname {}\n!\n'.format(hostname))
-    #
-    # # write changed interface configuration to configuration file
-    # with open(new_cfg, 'a+') as f:
-    #     for interface in interface_properties:
-    #         int_cfg = cfg_gen.format_interface_for_write(interface)
-    #         for line in int_cfg:
-    #             f.write(line)
-    #
-    # # write changed interface configuration to configuration file
-    # with open(new_cfg, 'a+') as f:
-    #     for vnet in vnet_properties:
-    #         vnet_cfg = cfg_gen.format_vnet_for_write(vnet)
-    #         for line in vnet_cfg:
-    #             f.write(line)
 
 
     cfg_gen.write_cfg(new_cfg, interface_properties, 'interface')
@@ -163,7 +138,34 @@ if __name__ == '__main__':
 
 
 
+# ip address calculation for vlans is first IP in subnet
+# hostname example:
+# - nysw731-10wa-corp --> NYCL-10W-CORP-LF1
+# - nysw731-10wb-corp --> NYCL-10W-CORP-LF2
 
+"""
+interface vlan53
+ description <>
+ vrf forwading <>
+ ip address <>
+ ip helper-address <>
+ ip helper-address <>
+ ip helper-address <>
+ ip helper-address <>
+ ip helper-address <>
+ no ip redirects
+ no ip unreachables
+ ip directed-broadcast 101
+ no ip proxy-arp
+ ip pim dr-priority 130
+ ip pim sparse-mode
+ no autostate
+ no shutdown
+ !
+
+
+
+"""
 
 
 
