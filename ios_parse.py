@@ -260,8 +260,6 @@ class IOSGenerate(object):
             int_cfg_lines.append('interface {}\n'.format(name))
         if desc:
             int_cfg_lines.append(' description {}\n'.format(desc))
-        if state:
-            int_cfg_lines.append(' {}\n'.format(state))
         # properties associated with layer two interfaces
         if mode == 'access':
             access_vlan = interface.get('access_vlan')
@@ -286,13 +284,34 @@ class IOSGenerate(object):
             ip_helpers = interface.get('ip_helpers')
             int_cfg_lines.append(' ip address {} {}\n'.format(ip['ip'], ip['mask']))
             pim_mode = interface.get('pim_mode')
+            ip_redirects = interface.get('ip_redirects')
+            ip_unreachables = interface.get('ip_unreachables')
+            ip_directed_broadcast = interface.get('ip_directed_broadcast')
+            ip_proxy_arp = interface.get('ip_proxy_arp')
+            ip_pim_dr_pri = interface.get('ip_pim_dr_pri')
+            autostate = interface.get('autostate')
             if vrf:
                 int_cfg_lines.append(' vrf forwarding {}\n'.format(vrf))
+            if ip_helpers:
+                for ip_helper in ip_helpers:
+                    int_cfg_lines.append(' ip helper-address {}\n'.format(ip_helper))
             if pim_mode:
                 int_cfg_lines.append(' ip pim {}\n'.format(pim_mode))
-            if ip_helpers:
-                for helper in ip_helpers:
-                    int_cfg_lines.append(' ip helper-address {}\n'.format(helper))
+            if ip_redirects == False:
+                int_cfg_lines.append(' no ip redirects\n')
+            if ip_unreachables == False:
+                int_cfg_lines.append(' no ip unreachables\n')
+            if ip_directed_broadcast:
+                int_cfg_lines.append(' ip directed-broadcast {}\n'.format(ip_directed_broadcast))
+            if ip_proxy_arp == False:
+                int_cfg_lines.append(' no ip proxy-arp\n')
+            if ip_pim_dr_pri:
+                int_cfg_lines.append(' ip pim dr-priority {}\n'.format(ip_pim_dr_pri))
+            if autostate == False:
+                int_cfg_lines.append(' no autostate\n')
+        # shutdown property associated with all interfaces
+        if state:
+            int_cfg_lines.append(' {}\n'.format(state))
         int_cfg_lines.append('!')
         int_cfg_lines.append('\n')
         return int_cfg_lines
@@ -323,6 +342,46 @@ class IOSGenerate(object):
             'pim_mode': pim_mode
         }
         interfaces.append(standard_loopback_interface)
+
+    @staticmethod
+    def create_interface(name, desc, vrf, ipv4, interfaces, **kwargs):
+        interface = {
+            'name': name,
+            'description': desc,
+            'vrf': vrf,
+            'ipv4': ipv4
+        }
+        for k,v in kwargs.items():
+            interface[k] = v
+        interfaces.append(interface)
+
+    """
+    interface vlan53
+     description <>
+     vrf forwading <>
+     ip address <>
+     ip helper-address <>
+     ip helper-address <>
+     ip helper-address <>
+     ip helper-address <>
+     ip helper-address <>
+     no ip redirects
+     no ip unreachables
+     ip directed-broadcast 101
+     no ip proxy-arp
+     ip pim dr-priority 130
+     ip pim sparse-mode
+     no autostate
+     no shutdown
+     !
+
+
+
+    """
+
+
+
+
 
     @staticmethod
     def create_standard_vnet(name, ipv4, pim_mode):

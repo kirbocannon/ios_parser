@@ -57,20 +57,6 @@ if __name__ == '__main__':
     hostname = ios.get_hostname()
     cfg_gen = IOSGenerate()
 
-
-    # changing access vlan from 966 to 777
-    for i in interface_properties:
-        new_vlan = i.get('access_vlan')
-        if new_vlan == '966':
-            i['access_vlan'] = 777
-            i['ip_helpers'] = ['10.1.1.1', '10.2.2.2']
-        # need to create more logic here, only vlans with ip directed-broadcast 101
-        # commands are DATA VLANs and CPE: vlan51, vlan52, vlan53
-        # probably some other stuff different too
-
-    #print(json.dumps(interface_properties, indent=4))
-
-
     # remove standard interface loopbacks and add standard config
     # [:] is for changing the list in place. Otherwise, the indexes will never update and you
     # will get some strange results
@@ -78,6 +64,23 @@ if __name__ == '__main__':
     standard_loopback_interface_names = ['Loopback0', 'Loopback2', 'Loopback8', 'Loopback10', 'Loopback12']
     interface_properties[:] = [interface for interface in interface_properties
                                if interface.get('name') not in standard_loopback_interface_names]
+
+    # changing access vlan from 966 to 777
+    for i in interface_properties:
+        new_vlan = i.get('access_vlan')
+        if new_vlan == '966':
+            i['access_vlan'] = 777
+            #i['ip_helpers'] = ['10.1.1.1', '10.2.2.2']
+
+
+
+        # need to make another function/loop for creating interface vlans - only vlans with ip directed-broadcast 101
+        # commands are DATA VLANs and CPE: vlan51, vlan52, vlan53
+        # probably some other stuff different too
+        # vlan 501 and 352 don't have acl
+
+    #print(json.dumps(interface_properties, indent=4))
+
     #print('---------------------------------')
 
     # specify new config file name, copy from base config
@@ -106,32 +109,53 @@ if __name__ == '__main__':
     )
 
     bgp_global = write_standard_bgp_config(
-        vrf_name = 'GLOBAL',
-        router_id = '10.100.100.110',
-        cfg_file =new_cfg
+        vrf_name='GLOBAL',
+        router_id='10.100.100.110',
+        cfg_file=new_cfg
     )
     bgp_user = write_standard_bgp_config(
-        vrf_name = 'USER',
-        router_id = '10.100.101.110',
-        cfg_file =new_cfg
+        vrf_name='USER',
+        router_id='10.100.101.110',
+        cfg_file=new_cfg
     )
     bgp_fac = write_standard_bgp_config(
-        vrf_name = 'FAC',
-        router_id = '10.100.104.110',
-        cfg_file = new_cfg
+        vrf_name='FAC',
+        router_id='10.100.104.110',
+        cfg_file=new_cfg
     )
     bgp_sec = write_standard_bgp_config(
-        vrf_name = 'SEC',
-        router_id = '10.100.105.110',
-        cfg_file = new_cfg
+        vrf_name='SEC',
+        router_id='10.100.105.110',
+        cfg_file=new_cfg
     )
     bgp_vend = write_standard_bgp_config(
-        vrf_name = 'VEND',
-        router_id = '10.55.55.110',
-        cfg_file = new_cfg
+        vrf_name='VEND',
+        router_id='10.55.55.110',
+        cfg_file=new_cfg
     )
 
+    cfg_gen.create_interface(
+        name='interface vlan 2',
+        desc='baw',
+        vrf='my-vrf',
+        ipv4={'ip': '1.1.1.1', 'mask': '255.255.255.255'},
+        interfaces=interface_properties,
+        ip_helpers=['9.9.9.9','8.8.8.8', '2.2.2.2', '10.5.2.3'],
+        ip_redirects=False,
+        ip_unreachables=False,
+        ip_directed_broadcast='101',
+        ip_proxy_arp=False,
+        ip_pim_dr_pri='130',
+        autostate=False,
+        state='no shutdown'
+    )
 
+    # ip_redirects = interface.get('ip_redirects')
+    # ip_unreachables = interface.get('ip_unreachables')
+    # ip_directed_broadcast = interface.get('ip_directed_broadcast')
+    # ip_proxy_arp = interface.get('ip_proxy_arp')
+    # ip_pim_dr_pri = interface.get('ip_pim_dr_pri')
+    # autostate = interface.get('autostate')
 
 
     cfg_gen.write_cfg(new_cfg, interface_properties, 'interface')
