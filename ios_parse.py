@@ -31,6 +31,20 @@ class IOSParse(object):
             if_name = if_name[0].split()[1]
             return if_name
 
+    def is_vlan_num(self, line):
+        """ Reutnrs a vlan """
+        vlan_num = self.srch_str(pattern=r"^vlan \d+", string=line)
+        if vlan_num:
+            vlan_num = vlan_num[0].split()[1]
+            return vlan_num
+
+    def is_vlan_name(self, line):
+        """ Reutnrs a vlan """
+        vlan_name = self.srch_str(pattern=r"^ name .*", string=line)
+        if vlan_name:
+            vlan_name = vlan_name[0].split()[1]
+            return vlan_name
+
     def is_end_of_sub_cfg(self, line):
         """ Checks if sub-configuration is ending, i.e. there's an ! present """
         end_sym = self.srch_str(pattern=r"^!", string=line)
@@ -152,6 +166,11 @@ class IOSParse(object):
             hostname = self.is_hostname(line)
             if hostname:
                 return hostname
+
+    def get_all_vlan_properties(self):
+        pass
+
+
 
     def get_all_interface_properties(self):
         """ Converts the following interface properties to a
@@ -333,6 +352,19 @@ class IOSGenerate(object):
         return vnet_cfg_lines
 
     @staticmethod
+    def format_vlan_for_write(vlan):
+        """ Formats a single vlan with supported properties when supplied in dictionary format """
+        vlan_cfg_lines = []
+        num = vlan.get('num')
+        name = vlan.get('name')
+        if num:
+            vlan_cfg_lines.append('vlan {}\n'.format(num))
+        if name:
+            vlan_cfg_lines.append(' name {}\n'.format(name))
+        vlan_cfg_lines.append('!\n')
+        return vlan_cfg_lines
+
+    @staticmethod
     def create_standard_loopback(name, desc, vrf, ipv4, pim_mode, interfaces):
         standard_loopback_interface = {
             'name': name,
@@ -354,6 +386,14 @@ class IOSGenerate(object):
         for k,v in kwargs.items():
             interface[k] = v
         interfaces.append(interface)
+
+    @staticmethod
+    def create_standard_vlan(num, name, vlans):
+        vlan = {
+            'num': num,
+            'name': name
+        }
+        vlans.append(vlan)
 
     """
     interface vlan53
@@ -384,15 +424,14 @@ class IOSGenerate(object):
 
 
     @staticmethod
-    def create_standard_vnet(name, ipv4, pim_mode):
-        vnet_properties = []
+    def create_standard_vnet(name, ipv4, pim_mode, vnets):
         standard_vnet_interface = {
             'name': name,
             'ipv4': ipv4,
-            'pim_mode': pim_mode
+            'pim_mode': pim_mode,
         }
-        vnet_properties.append(standard_vnet_interface)
-        return vnet_properties
+        vnets.append(standard_vnet_interface)
+        return vnets
 
     def write_cfg(self, cfg_file, lines, type):
         format_line = getattr(IOSGenerate, 'format_{}_for_write'.format(type))

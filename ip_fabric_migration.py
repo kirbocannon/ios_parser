@@ -41,19 +41,15 @@ def write_standard_bgp_config(vrf_name, router_id, cfg_file):
     with open(cfg_file, encoding='utf-8', mode='w+') as f:
         f.write(Template(data).safe_substitute(vars))
 
-
-
-
-
-
-
-if __name__ == '__main__':
+def main():
     cfg = 'delta_cfg.txt'
     device = NetworkDevice(cfg)
     data = device.load_data()
     ios = IOSParse(data)
     # print(json.dumps(interface_properties, indent=4))
     interface_properties = ios.get_all_interface_properties()
+    vlans = []
+    vnets = []
     hostname = ios.get_hostname()
     cfg_gen = IOSGenerate()
 
@@ -70,18 +66,16 @@ if __name__ == '__main__':
         new_vlan = i.get('access_vlan')
         if new_vlan == '966':
             i['access_vlan'] = 777
-            #i['ip_helpers'] = ['10.1.1.1', '10.2.2.2']
-
-
+            # i['ip_helpers'] = ['10.1.1.1', '10.2.2.2']
 
         # need to make another function/loop for creating interface vlans - only vlans with ip directed-broadcast 101
         # commands are DATA VLANs and CPE: vlan51, vlan52, vlan53
         # probably some other stuff different too
         # vlan 501 and 352 don't have acl
 
-    #print(json.dumps(interface_properties, indent=4))
+    # print(json.dumps(interface_properties, indent=4))
 
-    #print('---------------------------------')
+    # print('---------------------------------')
 
     # specify new config file name, copy from base config
     new_cfg = 'test.txt'
@@ -100,12 +94,15 @@ if __name__ == '__main__':
     vnet1 = cfg_gen.create_standard_vnet(
         name='USER-VRF',
         ipv4={'ip': '1.1.1.1', 'mask': '255.255.255.255'},
-        pim_mode='sparse-mode'
+        pim_mode='sparse-mode',
+        vnets=vnets
     )
+
     vnet2 = cfg_gen.create_standard_vnet(
         name='MY',
         ipv4={'ip': '2.2.2.2', 'mask': '255.255.255.0'},
-        pim_mode='sparse-mode'
+        pim_mode='sparse-mode',
+        vnets=vnets
     )
 
     bgp_global = write_standard_bgp_config(
@@ -113,11 +110,13 @@ if __name__ == '__main__':
         router_id='10.100.100.110',
         cfg_file=new_cfg
     )
+
     bgp_user = write_standard_bgp_config(
         vrf_name='USER',
         router_id='10.100.101.110',
         cfg_file=new_cfg
     )
+
     bgp_fac = write_standard_bgp_config(
         vrf_name='FAC',
         router_id='10.100.104.110',
@@ -128,6 +127,7 @@ if __name__ == '__main__':
         router_id='10.100.105.110',
         cfg_file=new_cfg
     )
+
     bgp_vend = write_standard_bgp_config(
         vrf_name='VEND',
         router_id='10.55.55.110',
@@ -140,7 +140,7 @@ if __name__ == '__main__':
         vrf='my-vrf',
         ipv4={'ip': '1.1.1.1', 'mask': '255.255.255.255'},
         interfaces=interface_properties,
-        ip_helpers=['9.9.9.9','8.8.8.8', '2.2.2.2', '10.5.2.3'],
+        ip_helpers=['9.9.9.9', '8.8.8.8', '2.2.2.2', '10.5.2.3'],
         ip_redirects=False,
         ip_unreachables=False,
         ip_directed_broadcast='101',
@@ -150,51 +150,35 @@ if __name__ == '__main__':
         state='no shutdown'
     )
 
-    # ip_redirects = interface.get('ip_redirects')
-    # ip_unreachables = interface.get('ip_unreachables')
-    # ip_directed_broadcast = interface.get('ip_directed_broadcast')
-    # ip_proxy_arp = interface.get('ip_proxy_arp')
-    # ip_pim_dr_pri = interface.get('ip_pim_dr_pri')
-    # autostate = interface.get('autostate')
+    vlan51 = cfg_gen.create_standard_vlan(
+        num='51',
+        name='10W[1]_DAT1_10.16.70.0/24',
+        vlans=vlans
+    )
+
+
+
 
 
     cfg_gen.write_cfg(new_cfg, interface_properties, 'interface')
-    cfg_gen.write_cfg(new_cfg, vnet1, 'vnet')
-    cfg_gen.write_cfg(new_cfg, vnet2, 'vnet')
+    cfg_gen.write_cfg(new_cfg, vnets, 'vnet')
+    cfg_gen.write_cfg(new_cfg, vlans, 'vlan')
+
+
+
+    # ip address calculation for vlans is first IP in subnet
+    # hostname example:
+    # - nysw731-10wa-corp --> NYCL-10W-CORP-LF1
+    # - nysw731-10wb-corp --> NYCL-10W-CORP-LF2
+
+
+
+# print(json.dumps(ios.get_interface_properties('loopback30'), indent=4))
+# print(json.dumps(ios.get_all_interface_properties(), indent=4))
 
 
 
 
-# ip address calculation for vlans is first IP in subnet
-# hostname example:
-# - nysw731-10wa-corp --> NYCL-10W-CORP-LF1
-# - nysw731-10wb-corp --> NYCL-10W-CORP-LF2
 
-"""
-interface vlan53
- description <>
- vrf forwading <>
- ip address <>
- ip helper-address <>
- ip helper-address <>
- ip helper-address <>
- ip helper-address <>
- ip helper-address <>
- no ip redirects
- no ip unreachables
- ip directed-broadcast 101
- no ip proxy-arp
- ip pim dr-priority 130
- ip pim sparse-mode
- no autostate
- no shutdown
- !
-
-
-
-"""
-
-
-
-#print(json.dumps(ios.get_interface_properties('loopback30'), indent=4))
-#print(json.dumps(ios.get_all_interface_properties(), indent=4))
+if __name__ == '__main__':
+    main()
