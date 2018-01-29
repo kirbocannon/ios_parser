@@ -43,6 +43,18 @@ def write_standard_bgp_config(vrf_name, router_id, cfg_file):
     with open(cfg_file, encoding='utf-8', mode='w+') as f:
         f.write(Template(data).safe_substitute(vars))
 
+def construct_vlan_ip(vlan_num, vlan_info):
+    vlan_obj = {}
+    try:
+        vlan = next(vlan for vlan in vlan_info if vlan['NEW VLAN ID'] == 'Vlan{}'.format(vlan_num))
+        vlan_obj['num'] = vlan_num
+        vlan_obj['name'] = vlan['VLAN NAME']
+        vlan_obj['ip'] = str(list(ipaddress.ip_network(vlan['SUBNET']).hosts())[0])
+        vlan_obj['mask'] = ipaddress.IPv4Interface(vlan['SUBNET']).with_netmask.split('/')[1]
+        return vlan_obj
+    except StopIteration:
+        sys.exit('vlan{} not found'.format(vlan_num))
+
 def main():
     cfg = 'delta_cfg.txt'
     device = NetworkDevice(cfg)
@@ -63,12 +75,7 @@ def main():
     interface_properties[:] = [interface for interface in interface_properties
                                if interface.get('name') not in standard_loopback_interface_names]
 
-    # changing access vlan from 966 to 777
-    for i in interface_properties:
-        new_vlan = i.get('access_vlan')
-        if new_vlan == '966':
-            i['access_vlan'] = 777
-            # i['ip_helpers'] = ['10.1.1.1', '10.2.2.2']
+
 
         # need to make another function/loop for creating interface vlans - only vlans with ip directed-broadcast 101
         # commands are DATA VLANs and CPE: vlan51, vlan52, vlan53
@@ -82,6 +89,34 @@ def main():
     # specify new config file name, copy from base config
     new_cfg = 'test.txt'
     copyfile('base_cfg.txt', new_cfg)
+    # import vlan information and then create them
+    vlan_info = import_csv_by_key(filename=csv_filename, key='NEW SW NAME', value='NYCL-10W-CORP-LF1')
+    vlan = construct_vlan_ip('51', vlan_info)
+    # get old vlan data to switch to new vlans. Will remove these vlans from vlan database
+    for item in vlan_info:
+        if item['VLAN TYPE'] == 'DAT1':
+            old_dat1_vlan = item['VLAN ID'].split('Vlan')[1]
+        if item['VLAN TYPE'] == 'DAT2':
+            old_dat2_vlan = item['VLAN ID']
+        if item['VLAN TYPE'] == 'CPE':
+            old_cpe_vlan = item['VLAN ID']
+        if item['VLAN TYPE'] == 'VOC1':
+            old_voc1_vlan = item['VLAN ID']
+        if item['VLAN TYPE'] == 'VOC2':
+            old_voc2_vlan = item['VLAN ID']
+        if item['VLAN TYPE'] == 'NAC1':
+            old_nac1_vlan = item['VLAN ID']
+        if item['VLAN TYPE'] == 'NAC2':
+            old_nac2_vlan = item['VLAN ID']
+        if item['VLAN TYPE'] == 'FAC':
+            old_fac_vlan = item['VLAN ID']
+        if item['VLAN TYPE'] == 'SEC':
+            old_sec_vlan = item['VLAN ID']
+
+    # change access vlan from old vlan to new vlan
+    for i in interface_properties:
+        if i.get('access_vlan') == old_dat1_vlan:
+            i['access_vlan'] = '51'
 
     # add new loopback interfaces
     cfg_gen.create_standard_loopback(
@@ -136,10 +171,6 @@ def main():
         cfg_file=new_cfg
     )
 
-    # import vlan information and then create them
-    vlan_info = import_csv_by_key(filename=csv_filename, key='NEW SW NAME', value='NYCL-10W-CORP-LF1')
-    vlan = construct_vlan_ip('51', vlan_info)
-
     cfg_gen.create_standard_vlan(
         num=vlan['num'],
         name=vlan['name'],
@@ -148,7 +179,7 @@ def main():
 
     # create associated vlan interfaces
     cfg_gen.create_interface(
-        name='interface vlan {}'.format(vlan['num']),
+        name='vlan{}'.format(vlan['num']),
         desc='baw',
         vrf='my-vrf',
         ipv4={'ip': vlan['ip'], 'mask': vlan['mask']},

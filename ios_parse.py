@@ -149,9 +149,6 @@ class IOSParse(object):
     def is_source_interface(self, line):
         """ Returns a line if source-interface command is found """
         source_int = self.srch_str(pattern=r"^ip \S+ source-interface .*", string=line)
-        # if source_int:
-        #     for word in source_int:
-        #         if 'Vlan' in word
 
     def get_interfaces(self):
         """ Gets a list of all interfaces without interface properties """
@@ -418,6 +415,8 @@ class IOSGenerate(object):
                 int_cfg = format_line(line)
                 for line in int_cfg:
                     f.write(line)
+
+
 
 
 
