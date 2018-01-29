@@ -97,26 +97,27 @@ def main():
         if item['VLAN TYPE'] == 'DAT1':
             old_dat1_vlan = item['VLAN ID'].split('Vlan')[1]
         if item['VLAN TYPE'] == 'DAT2':
-            old_dat2_vlan = item['VLAN ID']
+            old_dat2_vlan = item['VLAN ID'].split('Vlan')[1]
         if item['VLAN TYPE'] == 'CPE':
-            old_cpe_vlan = item['VLAN ID']
+            old_cpe_vlan = item['VLAN ID'].split('Vlan')[1]
         if item['VLAN TYPE'] == 'VOC1':
-            old_voc1_vlan = item['VLAN ID']
+            old_voc1_vlan = item['VLAN ID'].split('Vlan')[1]
         if item['VLAN TYPE'] == 'VOC2':
-            old_voc2_vlan = item['VLAN ID']
+            old_voc2_vlan = item['VLAN ID'].split('Vlan')[1]
         if item['VLAN TYPE'] == 'NAC1':
-            old_nac1_vlan = item['VLAN ID']
+            old_nac1_vlan = item['VLAN ID'].split('Vlan')[1]
         if item['VLAN TYPE'] == 'NAC2':
-            old_nac2_vlan = item['VLAN ID']
+            old_nac2_vlan = item['VLAN ID'].split('Vlan')[1]
         if item['VLAN TYPE'] == 'FAC':
-            old_fac_vlan = item['VLAN ID']
+            old_fac_vlan = item['VLAN ID'].split('Vlan')[1]
         if item['VLAN TYPE'] == 'SEC':
-            old_sec_vlan = item['VLAN ID']
+            old_sec_vlan = item['VLAN ID'].split('Vlan')[1]
 
     # change access vlan from old vlan to new vlan
     for i in interface_properties:
         if i.get('access_vlan') == old_dat1_vlan:
             i['access_vlan'] = '51'
+
 
     # add new loopback interfaces
     cfg_gen.create_standard_loopback(
