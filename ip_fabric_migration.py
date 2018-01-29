@@ -1,6 +1,8 @@
 from ios_parse import *
+from csv_import import *
 from shutil import copyfile
 import ipaddress
+
 
 
 def calc_bgp_ips(vrf_name, bgp_ip):
@@ -134,11 +136,22 @@ def main():
         cfg_file=new_cfg
     )
 
+    # import vlan information and then create them
+    vlan_info = import_csv_by_key(filename=csv_filename, key='NEW SW NAME', value='NYCL-10W-CORP-LF1')
+    vlan = construct_vlan_ip('51', vlan_info)
+
+    cfg_gen.create_standard_vlan(
+        num=vlan['num'],
+        name=vlan['name'],
+        vlans=vlans
+    )
+
+    # create associated vlan interfaces
     cfg_gen.create_interface(
-        name='interface vlan 2',
+        name='interface vlan {}'.format(vlan['num']),
         desc='baw',
         vrf='my-vrf',
-        ipv4={'ip': '1.1.1.1', 'mask': '255.255.255.255'},
+        ipv4={'ip': vlan['ip'], 'mask': vlan['mask']},
         interfaces=interface_properties,
         ip_helpers=['9.9.9.9', '8.8.8.8', '2.2.2.2', '10.5.2.3'],
         ip_redirects=False,
@@ -150,16 +163,10 @@ def main():
         state='no shutdown'
     )
 
-    vlan51 = cfg_gen.create_standard_vlan(
-        num='51',
-        name='10W[1]_DAT1_10.16.70.0/24',
-        vlans=vlans
-    )
 
 
 
-
-
+    # write remaining interface, vnet, and vlan information to new configuraiton file
     cfg_gen.write_cfg(new_cfg, interface_properties, 'interface')
     cfg_gen.write_cfg(new_cfg, vnets, 'vnet')
     cfg_gen.write_cfg(new_cfg, vlans, 'vlan')

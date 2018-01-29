@@ -1,5 +1,6 @@
 import csv
 import sys
+import ipaddress
 
 csv_filename = 'vlan_info.csv'
 
@@ -18,10 +19,25 @@ def import_csv_by_key(filename, key, value):
     except FileNotFoundError:
         sys.exit("file '{}' could not be found.".format(filename))
 
+def construct_vlan_ip(vlan_num, vlan_info):
+    vlan_obj = {}
+    try:
+        vlan = next(vlan for vlan in vlan_info if vlan['NEW VLAN ID'] == 'Vlan{}'.format(vlan_num))
+        vlan_obj['num'] = vlan_num
+        vlan_obj['name'] = vlan['VLAN NAME']
+        vlan_obj['ip'] = str(list(ipaddress.ip_network(vlan['SUBNET']).hosts())[0])
+        vlan_obj['mask'] = ipaddress.IPv4Interface(vlan['SUBNET']).with_netmask.split('/')[1]
+        return vlan_obj
+    except StopIteration:
+        sys.exit('vlan{} not found'.format(vlan_num))
 
 
-vlan_info = import_csv_by_key(filename=csv_filename, key='NEW SW NAME', value='NYCL-10W-CORP-LF1')
+# print(construct_vlan_ip('51'))
+# print(construct_vlan_ip('52'))
+# print(construct_vlan_ip('351'))
+# print(construct_vlan_ip('55'))
 
-vlan70 = next(vlan for vlan in vlan_info if vlan['VLAN ID'] == 'Vlan70')
 
-print(vlan70['SUBNET'])
+
+
+

@@ -146,6 +146,13 @@ class IOSParse(object):
         if vrf_fwd:
             return vrf_fwd[0].strip().split('forwarding')[1].strip()
 
+    def is_source_interface(self, line):
+        """ Returns a line if source-interface command is found """
+        source_int = self.srch_str(pattern=r"^ip \S+ source-interface .*", string=line)
+        # if source_int:
+        #     for word in source_int:
+        #         if 'Vlan' in word
+
     def get_interfaces(self):
         """ Gets a list of all interfaces without interface properties """
         interfaces = self.create_obj_list('INTERFACES')
@@ -169,8 +176,6 @@ class IOSParse(object):
 
     def get_all_vlan_properties(self):
         pass
-
-
 
     def get_all_interface_properties(self):
         """ Converts the following interface properties to a
@@ -395,34 +400,6 @@ class IOSGenerate(object):
         }
         vlans.append(vlan)
 
-    """
-    interface vlan53
-     description <>
-     vrf forwading <>
-     ip address <>
-     ip helper-address <>
-     ip helper-address <>
-     ip helper-address <>
-     ip helper-address <>
-     ip helper-address <>
-     no ip redirects
-     no ip unreachables
-     ip directed-broadcast 101
-     no ip proxy-arp
-     ip pim dr-priority 130
-     ip pim sparse-mode
-     no autostate
-     no shutdown
-     !
-
-
-
-    """
-
-
-
-
-
     @staticmethod
     def create_standard_vnet(name, ipv4, pim_mode, vnets):
         standard_vnet_interface = {
@@ -434,6 +411,7 @@ class IOSGenerate(object):
         return vnets
 
     def write_cfg(self, cfg_file, lines, type):
+        """ Write configuration lines """
         format_line = getattr(IOSGenerate, 'format_{}_for_write'.format(type))
         with open(cfg_file, 'a+') as f:
             for line in lines:
