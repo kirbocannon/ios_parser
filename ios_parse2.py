@@ -20,7 +20,7 @@ class IOSParse(object):
         instructions = self.supp_types_json[category]['properties'][key]['read']
         match = re.findall(instructions, line)
         try:
-            return match[0]
+            return match[0].strip()
         except IndexError:
             pass
 
@@ -60,7 +60,7 @@ class IOSParse(object):
                 match = self.srch_for_supp_obj_prop('ios_interface', k, line)
                 if match:
                     # if key is already found, just append to the value, helpful when analyzing
-                    # multiple commands such as ip helper-address 
+                    # multiple commands such as ip helper-address
                     if properties.get(k):
                         properties[k] += ",{}".format(match)
                     else:

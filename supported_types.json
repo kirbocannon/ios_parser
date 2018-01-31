@@ -24,11 +24,11 @@
 			"write": "switchport voice vlan {}"
 		},
 		"speed": {
-			"read": "^.speed .*",
+			"read": "^.speed (.*)",
 			"write": "speed {}"
 		},
 		"duplex": {
-			"read": "^ duplex .*",
+			"read": "^ duplex (.*)",
 			"write": "duplex {}"
 		},
 		"snmp_opt_add": {
@@ -40,19 +40,19 @@
 			"write": "snmp trap mac-notification change remove"
 		},
 		"stree_mode": {
-			"read": "^ spanning-tree.*",
+			"read": "^ spanning-tree (.*)",
 			"write": "spanning-tree {}"
 		},
         "mode": {
-        	"read": "^ switchport mode .*",
+        	"read": "^ switchport mode (.*)",
         	"write": "switchport mode {}"
         },
 		"ipv4": {
-			"read": "^ ip address \\d{1,3}\\.\\d{1,3}\\.\\d{1,3}\\.\\d{1,3} \\d{1,3}\\.\\d{1,3}\\.\\d{1,3}\\.\\d{1,3}",
+			"read": "^ ip address (\\d{1,3}\\.\\d{1,3}\\.\\d{1,3}\\.\\d{1,3} \\d{1,3}\\.\\d{1,3}\\.\\d{1,3}\\.\\d{1,3})",
 			"write": "ip address {}"
 		},
 		"vrf": {
-			"read": "^ vrf forwarding .*",
+			"read": "^ vrf forwarding (.*)",
 			"write": "vrf forwarding {}"
 		},
 		"ip_helpers": {
