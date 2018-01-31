@@ -24,7 +24,7 @@ class IOSParse(object):
         except IndexError:
             pass
 
-    def get_interfaces(self):
+    def get_interface_names(self):
         """ Returns a list of all the interface names found in a configuration file """
         interface_list = []
         for line in self.cfg:
@@ -32,7 +32,7 @@ class IOSParse(object):
                 interface_list.append(line.rstrip())
         return interface_list
 
-    def get_interfaces_properties(self):
+    def get_interface_properties(self):
         """ Fetches and returns in a dict all interfaces found in a configuration file and returns a list
             You will not get the results you want if you do not conform to the IOS output. This function
             is best suited for reading directly from backup configuration file.
@@ -60,7 +60,7 @@ class IOSParse(object):
                 match = self.srch_for_supp_obj_prop('ios_interface', k, line)
                 if match:
                     # if key is already found, just append to the value, helpful when analyzing
-                    # multiple commands such as ip helper-address
+                    # commands that can be entered multiple times, such as the ip helper-address command
                     if properties.get(k):
                         properties[k] += ",{}".format(match)
                     else:
@@ -84,8 +84,8 @@ class IOSParse(object):
 
 net_device1 = IOSParse('delta_cfg.txt', 'supported_types.json')
 #test = net_device1.search_for_supp_obj('ios_interface_instructions', 'name')
-all_interfaces = net_device1.get_interfaces()
-test = net_device1.get_interfaces_properties()
+all_interfaces = net_device1.get_interface_names()
+test = net_device1.get_interface_properties()
 print(json.dumps(test, indent=4))
 # for i in test:
 #     print(json.dumps(i, indent=4))
