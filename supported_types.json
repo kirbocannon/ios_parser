@@ -1,0 +1,114 @@
+{
+	"ios_interface": {
+		"properties": 
+	{
+		"name": {
+			"read": "^interface ([PpTtLlVvFfGg].*)",
+			"write": "interface {}",
+			"parent": "True"
+		},
+		"description": {
+			"read": "^ description (.*)",
+			"write": "description {}"
+		},
+		"state": {
+			"read": "^ shutdown.*",
+			"write": "shutdown"
+		},
+		"access_vlan": {
+			"read": "^ switchport access vlan ([0-9]+)",
+			"write": "switchport access vlan {}"
+		},
+		"voice_vlan": {
+			"read": "^ switchport voice vlan ([0-9]+)",
+			"write": "switchport voice vlan {}"
+		},
+		"speed": {
+			"read": "^.speed .*",
+			"write": "speed {}"
+		},
+		"duplex": {
+			"read": "^ duplex .*",
+			"write": "duplex {}"
+		},
+		"snmp_opt_add": {
+			"read": "^ snmp trap mac-notification change added",
+			"write": "snmp trap mac-notification change added"
+		},
+		"snmp_opt_remove": {
+			"read": "^ snmp trap mac-notification change remove",
+			"write": "snmp trap mac-notification change remove"
+		},
+		"stree_mode": {
+			"read": "^ spanning-tree.*",
+			"write": "spanning-tree {}"
+		},
+        "mode": {
+        	"read": "^ switchport mode .*",
+        	"write": "switchport mode {}"
+        },
+		"ipv4": {
+			"read": "^ ip address \\d{1,3}\\.\\d{1,3}\\.\\d{1,3}\\.\\d{1,3} \\d{1,3}\\.\\d{1,3}\\.\\d{1,3}\\.\\d{1,3}",
+			"write": "ip address {}"
+		},
+		"vrf": {
+			"read": "^ vrf forwarding .*",
+			"write": "vrf forwarding {}"
+		},
+		"ip_helpers": {
+			"read": "^ ip helper-address (\\d{1,3}\\.\\d{1,3}\\.\\d{1,3}\\.\\d{1,3})",
+			"write": "ip helper-address {}"
+		},
+		"pim_mode": {
+			"read": "^ ip pim (.*)",
+			"write": "ip pim {}"
+		},
+		"ip_redirects": {
+			"read": "^.*ip redirects",
+			"write": "ip redirects"
+		},
+		"ip_unreachables": {
+			"read": "^.*ip unreachables",
+			"write": "ip unreachables"
+		},
+		"ip_directed_broadcast": {
+			"read": "^ ip directed-broadcast .*",
+			"write": "ip directed-broadcast"
+		},
+		"ip_proxy_arp": {
+			"read": "^.* ip proxy-arp",
+			"write": "ip proxy-arp"
+		},
+		"ip_pim_dr_pri": {
+			"read": "^. ip pim dr-priority .*",
+			"write": "ip pim dr-priority {}"
+		},
+		"autostate": {
+			"read": ".* autostate",
+			"write": "autostate"
+		}
+	},
+		"order": [
+			"name", 
+			"description",
+			"ip",
+			"access_vlan",
+			"voice_vlan",
+			"snmp_opt_add",
+			"snmp_opt_remove",
+			"stree_mode",
+			"mode",
+			"vrf",
+			"ip_helpers",
+			"pim_mode",
+			"ip_redirects",
+			"ip_unreachables",
+			"ip_directed_broadcast",
+			"ip_proxy_arp",
+			"ip_pim_dr_pri",
+			"autostate",
+			"state"
+		],
+		"negate": "no"
+	}
+}
